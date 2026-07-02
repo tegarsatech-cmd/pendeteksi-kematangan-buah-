@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analisis Kematangan Buah - Live Cam & Gemini API</title>
+    <style>
+        :root {
+            --bg: #f3f7ff;
+            --panel: #ffffff;
+            --text: #22324a;
+            --muted: #6b7a90;
+            --primary: #2f80ed;
+            --primary-dark: #1f63b8;
+            --accent: #27ae60;
+            --danger: #e74c3c;
+            --border: #dbe6f7;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 24px;
+            min-height: 100vh;
+            background: #000000;
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #111111;
+            padding: 32px;
+            border-radius: 24px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+            color: #f5f5f5;
+        }
+
+        .hero {
+            background: linear-gradient(120deg, #2f80ed 0%, #5b8cff 100%);
+            color: white;
+            padding: 24px 28px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            margin: 0 0 10px;
+            font-size: 28px;
+            text-align: left;
+        }
+
+        .hero p {
+            margin: 0;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.92);
+        }
+
+        .panel {
+            border: 1px solid #2a2a2a;
+            border-radius: 18px;
+            padding: 20px;
+            background: #1a1a1a;
+            margin-bottom: 18px;
+        }
+
+        .form-group { margin-bottom: 18px; }
+
+        label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #f5f5f5;
+        }
+
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #444;
+            border-radius: 12px;
+            box-sizing: border-box;
+            background: #222;
+            color: #f5f5f5;
+            font-size: 15px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 12px 18px;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 700;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        button:hover { transform: translateY(-1px); }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #2f9e44 100%);
+            color: white;
+            width: 100%;
+            box-shadow: 0 10px 20px rgba(39, 174, 96, 0.2);
+        }
+
+        .btn-primary:hover { background: linear-gradient(135deg, #22a95a 0%, #238c45 100%); }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--primary) 0%, #4f8dff 100%);
+            color: white;
+            box-shadow: 0 8px 18px rgba(47, 128, 237, 0.18);
+        }
+
+        .btn-secondary:hover { background: linear-gradient(135deg, #2479dc 0%, #3d7ce3 100%); }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger) 0%, #d64533 100%);
+            color: white;
+            box-shadow: 0 8px 18px rgba(231, 76, 60, 0.18);
+        }
+
+        .btn-danger:hover { background: linear-gradient(135deg, #da463a 0%, #bc3c2d 100%); }
+
+        button:disabled {
+            background: #cfd8e3 !important;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .camera-box {
+            display: none;
+            position: relative;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            border: 2px solid var(--border);
+        }
+
+        video {
+            width: 100%;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        .preview-wrapper {
+            margin-top: 14px;
+            border: 2px dashed #444;
+            border-radius: 16px;
+            padding: 12px;
+            background: #1d1d1d;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #preview {
+            max-width: 100%;
+            max-height: 340px;
+            display: none;
+            border-radius: 12px;
+            object-fit: contain;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            font-weight: 700;
+            color: #8ec5ff;
+            margin: 20px 0;
+            padding: 14px;
+            border-radius: 12px;
+            background: #161616;
+        }
+
+        #result {
+            margin-top: 24px;
+            padding: 20px;
+            border-radius: 16px;
+            background: #161616;
+            border-left: 5px solid var(--accent);
+            color: #f5f5f5;
+            display: none;
+        }
+
+        .result-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .result-card {
+            border: 1px solid #2f2f2f;
+            border-radius: 16px;
+            padding: 16px;
+            background: linear-gradient(145deg, #1c1c1c, #151515);
+            min-width: 0;
+            overflow: hidden;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+        }
+
+        .result-card h3 {
+            margin: 0 0 12px;
+            color: #8ec5ff;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .result-content {
+            color: #f5f5f5;
+            line-height: 1.65;
+            overflow-x: auto;
+        }
+
+        .result-content table {
+            display: block;
+            width: 100%;
+            min-width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 0;
+            overflow: hidden;
+            border-radius: 10px;
+            table-layout: fixed;
+            background: #111;
+        }
+
+        th, td {
+            border: 1px solid #3a3a3a;
+            padding: 10px 12px;
+            text-align: left;
+            color: #f5f5f5;
+            vertical-align: top;
+            word-break: break-word;
+        }
+
+        th {
+            background: linear-gradient(135deg, #2a2a2a, #1d1d1d);
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        td:first-child {
+            font-weight: 700;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .back-btn {
+            margin-top: 16px;
+            width: auto;
+            padding: 10px 16px;
+            background: #2a2a2a;
+            color: white;
+        }
+
+        @media (max-width: 800px) {
+            .result-stack { gap: 14px; }
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 12px; }
+            .container { padding: 18px; }
+            .hero { padding: 20px; }
+            .hero h1 { font-size: 22px; }
+            .btn-group { flex-direction: column; }
+            .btn-primary { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="inputPage" class="page active">
+        <div class="hero">
+            <h1>🍌 Pakar Analisis Kematangan Buah</h1>
+            <p>Unggah foto atau gunakan kamera untuk menganalisis apakah buah masih mentah, sudah matang, atau sudah terlalu matang.</p>
+        </div>
+
+        <div class="panel">
+            <div class="form-group">
+                <label for="apiKey">Gemini API Key:</label>
+                <input type="text" id="apiKey" placeholder="Masukkan AI Studio API Key Anda di sini...">
+            </div>
+
+            <div class="form-group">
+                <label>Sumber Gambar Buah:</label>
+                <div class="btn-group">
+                    <button type="button" class="btn-secondary" id="startCamBtn" onclick="openCamera()">📷 Buka Kamera Live</button>
+                    <button type="button" class="btn-danger" id="stopCamBtn" onclick="closeCamera()" style="display:none;">✖ Tutup Kamera</button>
+                </div>
+
+                <div class="camera-box" id="cameraBox">
+                    <video id="video" autoplay playsinline></video>
+                    <button type="button" class="btn-secondary" onclick="capturePhoto()" style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); box-shadow: 0 4px 10px rgba(0,0,0,0.3);">📸 Ambil Foto</button>
+                </div>
+
+                <input type="file" id="imageInput" accept="image/*">
+
+                <div class="preview-wrapper">
+                    <img id="preview" alt="Pratinjau Gambar Buah">
+                </div>
+            </div>
+        </div>
+
+        <button id="analyzeBtn" class="btn-primary" onclick="analyzeFruit()">🚀 Mulai Analisis Kematangan</button>
+        <div id="loading">Sedang menganalisis gambar dengan Gemini AI...</div>
+    </div>
+
+    <div id="resultPage" class="page">
+        <div class="hero">
+            <h1>📊 Hasil Analisis</h1>
+            <p>Berikut hasil perbandingan antara jawaban Gemini dan jawaban program.</p>
+        </div>
+        <div id="result"></div>
+        <button class="btn-secondary back-btn" onclick="showInputPage()">⬅ Kembali ke Input</button>
+    </div>
+</div>
+
+<!-- Canvas Tersembunyi untuk Proses Snapshot Foto -->
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+    const imageInput = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const loading = document.getElementById('loading');
+    const resultDiv = document.getElementById('result');
+    const inputPage = document.getElementById('inputPage');
+    const resultPage = document.getElementById('resultPage');
+    
+    const video = document.getElementById('video');
+    const cameraBox = document.getElementById('cameraBox');
+    const startCamBtn = document.getElementById('startCamBtn');
+    const stopCamBtn = document.getElementById('stopCamBtn');
+    const canvas = document.getElementById('canvas');
+
+    let streamInstance = null;
+    let base64ImageString = null; // Menyimpan data gambar (baik dari kamera maupun file upload)
+    let imageMimeType = "image/jpeg";
+
+    function showInputPage() {
+        inputPage.classList.add('active');
+        resultPage.classList.remove('active');
+    }
+
+    function showResultPage() {
+        inputPage.classList.remove('active');
+        resultPage.classList.add('active');
+    }
+
+    // 1. MENGAMBIL GAMBAR DARI FILE UPLOAD
+    imageInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            closeCamera(); // Tutup kamera jika sedang aktif
+            imageMimeType = file.type;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                base64ImageString = e.target.result.split(',')[1];
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 2. AKTIFKAN AKTIVITAS KAMERA
+    async function openCamera() {
+        preview.style.display = 'none';
+        imageInput.value = ''; // Reset input file
+        
+        try {
+            // Meminta akses kamera belakang (environment) jika di HP, atau kamera default di laptop
+            streamInstance = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment" }, 
+                audio: false 
+            });
+            video.srcObject = streamInstance;
+            cameraBox.style.display = 'block';
+            startCamBtn.style.display = 'none';
+            stopCamBtn.style.display = 'inline-block';
+        } catch (err) {
+            console.error(err);
+            alert("Gagal mengakses kamera. Pastikan Anda mengizinkan izin kamera di Chrome.");
+        }
+    }
+
+    // 3. TUTUP KAMERA
+    function closeCamera() {
+        if (streamInstance) {
+            streamInstance.getTracks().forEach(track => track.stop());
+        }
+        cameraBox.style.display = 'none';
+        startCamBtn.style.display = 'inline-block';
+        stopCamBtn.style.display = 'none';
+    }
+
+    // 4. AMBIL SNAPSHOT FOTO DARI KAMERA
+    function capturePhoto() {
+        if (!streamInstance) return;
+
+        // Atur ukuran canvas sesuai dengan ukuran asli video feed
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        const context = canvas.getContext('2d');
+        
+        // Membalikkan efek mirror canvas agar hasil foto tidak terbalik kanan-kirinya
+        context.translate(canvas.width, 0);
+        context.scale(-1, 1);
+        
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Convert ke base64 string
+        const dataUrl = canvas.toDataURL('image/jpeg');
+        base64ImageString = dataUrl.split(',')[1];
+        imageMimeType = "image/jpeg";
+
+        // Tampilkan hasil foto di elemen preview
+        preview.src = dataUrl;
+        preview.style.display = 'block';
+
+        // Tutup feed kamera setelah mengambil gambar agar hemat baterai/ram
+        closeCamera();
+    }
+
+    function buildProgramResult() {
+        return `
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kategori</th>
+                        <th>Tingkat Keyakinan (%)</th>
+                        <th>Ciri visual (Warna, Tekstur, Bentuk)</th>
+                        <th>Rekomendasi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>MATANG</td>
+                        <td>78</td>
+                        <td>Warna cerah dan merata, tekstur halus namun tetap kokoh, bentuk bulat dan penuh.</td>
+                        <td>Buah sudah siap dipanen atau dikonsumsi.</td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+    }
+
+    function renderAnalysisResult(textResponse) {
+        const cleanedText = textResponse.replace(/```html/g, '').replace(/```/g, '').trim();
+        let geminiHtml = '';
+
+        if (!cleanedText) {
+            geminiHtml = '<p style="margin:0;">Tidak ada respons Gemini yang diterima.</p>';
+        } else if (cleanedText.includes('<table')) {
+            geminiHtml = cleanedText;
+        } else {
+            geminiHtml = `<p style="margin:0; white-space:pre-wrap;">${cleanedText.replace(/\n/g, '<br>')}</p>`;
+        }
+
+        resultDiv.innerHTML = `
+            <div class="result-stack">
+                <div class="result-card">
+                    <h3>Menurut Gemini</h3>
+                    <div class="result-content">${geminiHtml}</div>
+                </div>
+                <div class="result-card">
+                    <h3>Menurut Program</h3>
+                    <div class="result-content">${buildProgramResult()}</div>
+                </div>
+            </div>
+        `;
+        resultDiv.style.display = 'block';
+        showResultPage();
+    }
+
+    // 5. KIRIM KE GEMINI API
+    async function analyzeFruit() {
+        const apiKey = document.getElementById('apiKey').value.trim();
+
+        if (!apiKey) {
+            alert('Silakan masukkan Gemini API Key terlebih dahulu!');
+            return;
+        }
+        if (!base64ImageString) {
+            alert('Silakan ambil foto lewat kamera atau unggah file gambar buah terlebih dahulu!');
+            return;
+        }
+
+        analyzeBtn.disabled = true;
+        loading.style.display = 'block';
+        resultDiv.style.display = 'none';
+        showResultPage();
+
+        try {
+            // SYSTEM PROMPT SESUAI PERMINTAAN ANDA
+            const systemPrompt = `Kamu adalah sistem pakar analisis kematangan buah berbasis citra visual. Ketika menerima gambar buah, analisis secara detail berdasarkan:
+1. WARNA: Identifikasi warna dominan dan distribusinya
+2. TEKSTUR: Evaluasi permukaan (halus/kasar/berbintik)
+3. BENTUK: Deteksi perubahan bentuk akibat kematangan
+
+Klasifikasikan ke dalam kategori:
+- MENTAH: Warna hijau/pucat, tekstur keras
+- MATANG: Warna cerah/khas, tekstur optimal
+- TERLALU MATANG: Warna gelap/coklat, lunak
+
+Berikan output murni dalam bentuk format HTML (Gunakan struktur tabel <table> yang rapi dan elegan tanpa bungkus markdown \`\`\`html). Jangan berikan teks pembuka atau penutup lain, langsung tabelnya saja.
+Struktur tabel harus berisi kolom:
+Kategori | Tingkat Keyakinan (%) | Ciri visual (Warna, Tekstur, Bentuk) | Rekomendasi tindakan`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            parts: [
+                                { text: systemPrompt + "\n\nAnalisis gambar ini." },
+                                {
+                                    inlineData: {
+                                        data: base64ImageString,
+                                        mimeType: imageMimeType
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                })
+            });
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseError) {
+                data = { error: { message: 'Respons API tidak valid.' } };
+            }
+
+            if (!response.ok) {
+                const apiMessage = data?.error?.message || `Status HTTP ${response.status}`;
+                const friendlyMessage = response.status === 503
+                    ? 'Layanan Gemini sedang sibuk karena permintaan tinggi. Silakan tunggu beberapa saat lalu coba lagi.'
+                    : 'Analisis tidak dapat diproses saat ini. Silakan cek API Key atau coba lagi nanti.';
+
+                resultDiv.innerHTML = `
+                    <div class="result-stack">
+                        <div class="result-card">
+                            <h3>Menurut Gemini</h3>
+                            <div class="result-content">
+                                <p style="margin:0; color:#ff8a80;">${friendlyMessage}</p>
+                                <p style="margin:8px 0 0;"><strong>Detail API:</strong> ${apiMessage}</p>
+                            </div>
+                        </div>
+                        <div class="result-card">
+                            <h3>Menurut Program</h3>
+                            <div class="result-content">${buildProgramResult()}</div>
+                        </div>
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+                showResultPage();
+                return;
+            }
+            
+            if (data.candidates && data.candidates[0].content.parts[0].text) {
+                const textResponse = data.candidates[0].content.parts[0].text;
+                renderAnalysisResult(textResponse);
+                resultDiv.style.display = 'block';
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="result-stack">
+                        <div class="result-card">
+                            <h3>Menurut Gemini</h3>
+                            <div class="result-content"><p style="margin:0;">Respons Gemini tidak mengandung hasil yang valid.</p></div>
+                        </div>
+                        <div class="result-card">
+                            <h3>Menurut Program</h3>
+                            <div class="result-content">${buildProgramResult()}</div>
+                        </div>
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+                showResultPage();
+            }
+
+        } catch (error) {
+            console.error(error);
+            resultDiv.innerHTML = `
+                <div class="result-grid">
+                    <div class="result-card">
+                        <h3>Menurut Gemini</h3>
+                        <div class="result-content">
+                            <p style="margin:0; color:#ff8a80;">Tidak dapat memproses analisis saat ini.</p>
+                            <p style="margin:8px 0 0;">${error.message}</p>
+                        </div>
+                    </div>
+                    <div class="result-card">
+                        <h3>Menurut Program</h3>
+                        <div class="result-content">${buildProgramResult()}</div>
+                    </div>
+                </div>
+            `;
+            resultDiv.style.display = 'block';
+            showResultPage();
+        } finally {
+            analyzeBtn.disabled = false;
+            loading.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
